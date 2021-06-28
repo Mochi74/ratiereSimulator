@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "c+xI0I8mrN/vD1ZjHm0MvEuaqkYS9r6kJDUor27nNxuGwBaU79PhPTJcKsqcWGtK3lckJt5apxe2kvuHu4imFg==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\e0emic\\ratiereSimulator\\ratiereSimulator.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\e0emic\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}
