@@ -2,7 +2,7 @@
 using System.Net;
 using System;
 using System.Timers;
-using System.Threading.Tasks;
+using System.Threading;
 using Newtonsoft.Json;
 using System.Text;
 using System.Collections.Generic;
@@ -187,9 +187,8 @@ public class Work {
 public class Ratiere {
     private Report_data report;
     private Work work;
-    private NetworkStream stream;
-    private TcpListener listener;
-    private TcpClient client;
+    private int port;
+    private AsynchronousSocketListener server;
 
     public Report_data Report {
         get => report;
@@ -200,56 +199,29 @@ public class Ratiere {
         set => work= Work;
     }    
 
+
+
+    private void startListeningRatiere(){
+        server.StartListening(8881);
+    }
+
+
     public Ratiere(String address,int portNumber) {
         report = new Report_data();
         work = new Work();
-              
-        sbyte value = work.Temp;     
+        port = portNumber;
+
         report.settemperature(work.Temp);
         report.setspeed(work.Speed);
 
-        // start server waiting for virtual ratiere client
-        listener = new TcpListener(IPAddress.Parse(address), portNumber); 
-        this.client = new TcpClient();
-        listener.Start();
-        Console.WriteLine("Server has started on " + address + ":" + portNumber + "{0} Waiting for a connection...", Environment.NewLine);
-        
-        TcpClient client = listener.AcceptTcpClient();
-        stream= client.GetStream();
-        Console.WriteLine("client connected on " + address + ":" + portNumber, Environment.NewLine);
+        Thread newThread; 
+        server = new AsynchronousSocketListener(); 
+        newThread = new Thread(new ThreadStart(startListeningRatiere));
+        newThread.Start();
 
     }
 
 
-    /*private void ListenForConnection()
-        {
-            Task.Factory.StartNew(
-                async () => {
-                    try {
-                        TcpClient tcpClient = await this.listener.AcceptTcpClientAsync();
-                        this.OnClientConnect(
-                            new TcpSocketServerChannel(
-                                tcpClient,
-                                this.logger));
-                    }
-                    catch (Exception e) {
-                        Console.WriteLine(
-                            "An unhandled exception occurred while listening for a TCP client connection",
-                            e);
- 
-                        throw e;
-                    }
-                });
-        }   
-   
-    public void CheckClient() {
-        tcpClient = GetTcpClientAsync();
-            )!=null) {
-            this.client= value;  
-            }
-
-    }  
-   */     
        
     public void Interval(){
 
@@ -258,17 +230,18 @@ public class Ratiere {
         ongoing = Work.Interval(Report);
 
         var json = JsonConvert.SerializeObject(this.Report.General, Formatting.None)+ "\r\n";
-        byte[] byteArray = Encoding.UTF8.GetBytes(json);
-        if (this.stream!=null) this.stream.Write(byteArray,0,byteArray.Length);     
+        server.SendAll(json);
+
+      
+        //if (this.stream!=null) this.stream.Write(byteArray,0,byteArray.Length);     
         
         json = JsonConvert.SerializeObject(this.Report.SpeedTable, Formatting.None)+ "\r\n";
-        byteArray = Encoding.UTF8.GetBytes(json);
-        if (stream!=null) this.stream.Write(byteArray,0,byteArray.Length);    
+        server.SendAll(json);
+    
         
         json = JsonConvert.SerializeObject(this.Report.TempTable, Formatting.None)+ "\r\n";
-        byteArray = Encoding.UTF8.GetBytes(json);
-        if (stream!=null) this.stream.Write(byteArray,0,byteArray.Length); 
-            
+        server.SendAll(json);
+    
         if (!ongoing) {
             Console.WriteLine("work is over on this ratiere, starting a new one");
             this.work = new Work();
@@ -278,48 +251,52 @@ public class Ratiere {
             if (Work.Speed > Report.General.Speedmax) Report.General.Speedmax = (ushort)Work.Speed;
         }
     }
+
+
 } //ratiere 
 
 class Program {
     const string ADDRESS = "127.0.0.1";
     const int PORT = 8880;   
-    const int NBRATIERE = 2;   
+    const int NBRATIERE = 1;   
     const int INTERVAL = 5000;
+     
 
-    //private static Ratiere aRatiere;
-    private static List<Ratiere> listRatiere;
-    private static Timer aTimer;
+    
+    private static System.Timers.Timer aTimer;
+
+
+    
 
     static void Main(string[] args) {
+   
 
         List<Ratiere> listRatiere = new List<Ratiere>();
-    
+ 
         Console.WriteLine("Hello World!");
-        // Create a timer and set a five second interval.
 
         for (int i=0;i<NBRATIERE;i++) {
             Console.WriteLine("Create new ratiere {0}:", i);
             listRatiere.Add(new Ratiere(ADDRESS,PORT+i));
         }
 
-    // aRatiere = (Ratiere)new Ratiere(ADDRESS,PORT);
-        
-
         aTimer = new System.Timers.Timer();
         aTimer.Interval = INTERVAL;
 
         // Hook up the Elapsed event for the timer. 
-        //foreach (Ratiere ratiere in listRatiere) {
-            aTimer.Elapsed += (sender,e) => OnTimedEvent(sender,e,listRatiere);   
-        //} 
+        aTimer.Elapsed += (sender,e) => OnTimedEvent(sender,e,listRatiere);   
         
         aTimer.AutoReset = true;
 
         // Start the timer
         aTimer.Enabled = true;
-    
+        
+        
+        Console.WriteLine("je continue");
+        
         //enter to an infinite cycle to be able to handle every change in stream
         while(true){
+          
         };
 
     }
@@ -328,9 +305,11 @@ class Program {
     private static void OnTimedEvent(Object source, System.Timers.ElapsedEventArgs e, List<Ratiere> listratiere) {
        
         Console.WriteLine("The Elapsed event was raised at {0}", e.SignalTime);
+        
         foreach (Ratiere ratiere in listratiere) {
             ratiere.Interval(); 
-        }  
+        } 
+        
     }
 
   }  //program
