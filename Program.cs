@@ -85,22 +85,62 @@ public class General {
 } // General
 
 
+public class TableV {
+   
+    private uint[] speedTable;  
+
+    public TableV (int size){
+        speedTable=new uint[size];
+    }    
+
+    public uint[] SpeedTable {
+        get => speedTable;
+        set => speedTable= SpeedTable;
+    }
+} // TableV
+
+public class TableT {
+   
+    private uint[] tempTable;  
+
+    public TableT (int size){
+        tempTable=new uint[size];
+    }    
+
+    public uint[] TempTable {
+        get => tempTable;
+        set => tempTable= TempTable;
+    }
+} // TableT
+
+public class TableL {
+   
+    private uint[] lame;  
+
+    public TableL (int size){
+        lame=new uint[size];
+    }    
+
+    public uint[] Lame {
+        get => lame;
+        set => lame= Lame;
+    }
+} // TableL
+
+
 public class Report_data {
     private General general;          /* version de la structure */
-    private uint[] speedTable;  /* temps passé en marche par vitesse */
-    private uint[] tempTable;    /* temps de fonctionnement par degres */
+    private TableV speedTable;  /* temps passé en marche par vitesse */
+    private TableT tempTable;    /* temps de fonctionnement par degres */
     private ulong picks_counter;     /* nombre totale de duites */
-    private ulong[][] cycles;    /* nombre de cycles par lames et par tranche de vitesse */
+    private TableL lameTable;    /* nombre de cycles par lames */
     
    public Report_data(){
-        this.general = new General("2.0",0,0,0,0,28,0,0);
-        this.speedTable = new uint[50];
-        this.tempTable = new uint[50];
+        this.general = new General("2",0,0,0,0,28,0,0);
+        this.speedTable = new TableV(50);
+        this.tempTable = new TableT(50);
         this.picks_counter = 0;
-        this.cycles = new ulong[28][];
-        for(int i=0;i<28;i++) {
-            this.cycles[i]=new ulong[50];    
-        }  
+        this.lameTable = new TableL(28); 
     }
     public General General {
         get => general;
@@ -117,13 +157,17 @@ public class Report_data {
         get => picks_counter;
         set => picks_counter=Picks_counter;
     }
-    public uint[] SpeedTable {
+    public TableV SpeedTable {
         get => speedTable;
         set => speedTable=SpeedTable;
     }
-    public uint[] TempTable {
+    public TableT TempTable {
         get => tempTable;
         set => tempTable=TempTable;
+    }    
+    public TableL LameTable {
+        get => lameTable;
+        set => lameTable=LameTable;
     }    
     
 } //Report_Data
@@ -139,7 +183,7 @@ public class Work {
 
     public Work(){
         Random rnd = new Random();
-        this.duration = (int)rnd.Next(36);;
+        this.duration = (int)rnd.Next(600);;
         this.periode = 5;
         this.speed = (ushort)rnd.Next(1300);
         this.temp = (sbyte)rnd.Next(99);
@@ -163,9 +207,18 @@ public class Work {
         short indiceTemp=(short)Math.Round(this.temp/2.0);
     
         uint nbcoup = (uint)Math.Round(this.periode*this.speed/60.0);
+        
+
+
+     
         if (this.running) {
-            Report.SpeedTable[indiceSpeed] += this.periode;
-            Report.TempTable[indiceTemp] += this.periode;
+            Report.SpeedTable.SpeedTable[indiceSpeed] += nbcoup;
+            Report.TempTable.TempTable[indiceTemp] += nbcoup;
+            Random rnd = new Random();
+            for (short i=0;i<28;i++) {
+                Report.LameTable.Lame[i] += (uint)rnd.Next((int)nbcoup);   
+            }
+
             Report.Picks_counter += nbcoup; 
         }    
         else {
@@ -201,9 +254,6 @@ public class Ratiere {
 
 
 
-    private void startListeningRatiere(){
-        server.StartListening(8881);
-    }
 
 
     public Ratiere(String address,int portNumber) {
@@ -214,33 +264,40 @@ public class Ratiere {
         report.settemperature(work.Temp);
         report.setspeed(work.Speed);
 
-        Thread newThread; 
         server = new AsynchronousSocketListener(); 
-        newThread = new Thread(new ThreadStart(startListeningRatiere));
+        
+        Thread newThread;
+        ThreadStart threadDelegate = new ThreadStart(this.startListeningRatiere);
+        newThread = new Thread(threadDelegate);
         newThread.Start();
-
     }
 
+    private void startListeningRatiere(){
+        this.server.StartListening(this.port);
+    }
 
        
     public void Interval(){
 
         Boolean ongoing;
 
-        ongoing = Work.Interval(Report);
+        ongoing = work.Interval(report);
 
         var json = JsonConvert.SerializeObject(this.Report.General, Formatting.None)+ "\r\n";
-        server.SendAll(json);
+        this.server.SendAll(json);
 
       
         //if (this.stream!=null) this.stream.Write(byteArray,0,byteArray.Length);     
         
         json = JsonConvert.SerializeObject(this.Report.SpeedTable, Formatting.None)+ "\r\n";
-        server.SendAll(json);
+        this.server.SendAll(json);
     
         
         json = JsonConvert.SerializeObject(this.Report.TempTable, Formatting.None)+ "\r\n";
-        server.SendAll(json);
+        this.server.SendAll(json);
+
+        json = JsonConvert.SerializeObject(this.Report.LameTable, Formatting.None)+ "\r\n";
+        this.server.SendAll(json);
     
         if (!ongoing) {
             Console.WriteLine("work is over on this ratiere, starting a new one");
@@ -291,15 +348,14 @@ class Program {
         // Start the timer
         aTimer.Enabled = true;
         
-        
-        Console.WriteLine("je continue");
-        
         //enter to an infinite cycle to be able to handle every change in stream
         while(true){
           
         };
 
     }
+
+
 
      
     private static void OnTimedEvent(Object source, System.Timers.ElapsedEventArgs e, List<Ratiere> listratiere) {
