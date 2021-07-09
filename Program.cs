@@ -85,17 +85,46 @@ public class General {
 } // General
 
 
+public class TableV {
+   
+    private uint[] speedTable;  
+
+    public TableV (int size){
+        speedTable=new uint[size];
+    }    
+
+    public uint[] SpeedTable {
+        get => speedTable;
+        set => speedTable= SpeedTable;
+    }
+} // TableV
+
+public class TableT {
+   
+    private uint[] tempTable;  
+
+    public TableT (int size){
+        tempTable=new uint[size];
+    }    
+
+    public uint[] TempTable {
+        get => tempTable;
+        set => tempTable= TempTable;
+    }
+} // TableT
+
+
 public class Report_data {
     private General general;          /* version de la structure */
-    private uint[] speedTable;  /* temps passé en marche par vitesse */
-    private uint[] tempTable;    /* temps de fonctionnement par degres */
+    private TableV speedTable;  /* temps passé en marche par vitesse */
+    private TableT tempTable;    /* temps de fonctionnement par degres */
     private ulong picks_counter;     /* nombre totale de duites */
     private ulong[][] cycles;    /* nombre de cycles par lames et par tranche de vitesse */
     
    public Report_data(){
-        this.general = new General("2.0",0,0,0,0,28,0,0);
-        this.speedTable = new uint[50];
-        this.tempTable = new uint[50];
+        this.general = new General("2",0,0,0,0,28,0,0);
+        this.speedTable = new TableV(50);
+        this.tempTable = new TableT(50);
         this.picks_counter = 0;
         this.cycles = new ulong[28][];
         for(int i=0;i<28;i++) {
@@ -117,11 +146,11 @@ public class Report_data {
         get => picks_counter;
         set => picks_counter=Picks_counter;
     }
-    public uint[] SpeedTable {
+    public TableV SpeedTable {
         get => speedTable;
         set => speedTable=SpeedTable;
     }
-    public uint[] TempTable {
+    public TableT TempTable {
         get => tempTable;
         set => tempTable=TempTable;
     }    
@@ -164,8 +193,8 @@ public class Work {
     
         uint nbcoup = (uint)Math.Round(this.periode*this.speed/60.0);
         if (this.running) {
-            Report.SpeedTable[indiceSpeed] += this.periode;
-            Report.TempTable[indiceTemp] += this.periode;
+            Report.SpeedTable.SpeedTable[indiceSpeed] += this.periode;
+            Report.TempTable.TempTable[indiceTemp] += this.periode;
             Report.Picks_counter += nbcoup; 
         }    
         else {
@@ -290,9 +319,6 @@ class Program {
 
         // Start the timer
         aTimer.Enabled = true;
-        
-        
-        Console.WriteLine("je continue");
         
         //enter to an infinite cycle to be able to handle every change in stream
         while(true){
