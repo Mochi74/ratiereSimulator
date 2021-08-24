@@ -152,7 +152,6 @@ public class AsynchronousSocketListener
 
     }
 
-
     private static void Send(Socket handler, String data)
     {
         // Convert the string data to byte data using ASCII encoding.  

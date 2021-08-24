@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using System.Text;
 using System.Collections.Generic;
 
+
 namespace ratiereSimulator
 {
 
